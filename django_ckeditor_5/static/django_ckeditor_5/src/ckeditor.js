@@ -52,6 +52,8 @@ import { FileUploader } from '@liqd/ckeditor5-file-uploader';
 import { ShowBlocks } from '@ckeditor/ckeditor5-show-blocks';
 import { SelectAll } from '@ckeditor/ckeditor5-select-all';
 import { FindAndReplace } from '@ckeditor/ckeditor5-find-and-replace';
+import { Accordion } from '@liqd/ckeditor5-accordion';
+
 
 export default class ClassicEditor extends ClassicEditorBase {
 }
@@ -108,5 +110,6 @@ ClassicEditor.builtinPlugins = [
     FileUploader,
     ShowBlocks,
     SelectAll,
-    FindAndReplace
+    FindAndReplace,
+    Accordion
 ];
