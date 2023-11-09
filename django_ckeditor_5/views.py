@@ -1,5 +1,6 @@
 import pathlib
 
+from datetime import datetime
 from django import get_version
 from django.http import Http404
 from django.utils.module_loading import import_string
@@ -59,9 +60,13 @@ def image_verify(f):
 
 def handle_uploaded_file(user, f):
     fs = storage()
-    path = f.name
+    path = ''
     if getattr(settings, "CKEDITOR_5_PATH_FROM_USERNAME", False):
-        path = pathlib.PurePath(user.username, f.name)
+        path = pathlib.PurePath(path, user.username)
+    if getattr(settings, "CKEDITOR5_RESTRICT_BY_DATE", True):
+        date_path = datetime.now().strftime("%Y/%m/%d")
+        path = pathlib.PurePath(path, date_path)
+    path = pathlib.PurePath(path, f.name)
     filename = fs.save(path, f)
     return fs.url(filename)
 
