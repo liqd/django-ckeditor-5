@@ -1,5 +1,6 @@
 Django CKEditor 5 
 ==================
+Fork of https://github.com/hvlads/django-ckeditor-5
 
    CKEditor 5 for Django >= 2.0
 
