@@ -99,9 +99,9 @@ function createEditors(element = document.body) {
                 {
                     name: 'youtube',
                     url: [
-                            /^(?:m\.)?youtube\.com\/watch\?v=([\w-]+)(?:&t=(\d+))?/,
-                            /^(?:m\.)?youtube\.com\/v\/([\w-]+)(?:\?t=(\d+))?/,
-                            /^youtube\.com\/embed\/([\w-]+)(?:\?start=(\d+))?/,
+                            /^(?:m\.)?youtube(?:-nocookie)?\.com\/watch\?v=([\w-]+)(?:&t=(\d+))?/,
+                            /^(?:m\.)?youtube(?:-nocookie)?\.com\/v\/([\w-]+)(?:\?t=(\d+))?/,
+                            /^youtube(?:-nocookie)?\.com\/embed\/([\w-]+)(?:\?start=(\d+))?/,
                             /^youtu\.be\/([\w-]+)(?:\?t=(\d+))?/
                     ],
                     html: match => {
@@ -110,7 +110,7 @@ function createEditors(element = document.body) {
 
                         return (
                             '<div style="position: relative; padding-bottom: 100%; height: 0; padding-bottom: 56.2493%;">' +
-                                    `<iframe src="https://www.youtube.com/embed/${ id }?rel=0${ time ? `&start=${ time }` : '' }" ` +
+                                    `<iframe src="https://www.youtube-nocookie.com/embed/${ id }?rel=0${ time ? `&start=${ time }` : '' }" ` +
                                             'style="position: absolute; width: 100%; height: 100%; top: 0; left: 0;" ' +
                                             'frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>' +
                                     '</iframe>' +
@@ -144,7 +144,6 @@ function createEditors(element = document.body) {
                 },
             ];
         }
-        console.log(config);
 
         ClassicEditor.create(
             editorEl,
