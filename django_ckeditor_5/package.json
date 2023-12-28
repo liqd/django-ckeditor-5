@@ -51,6 +51,7 @@
     "@ckeditor/ckeditor5-dev-translations": "^39.6.2",
     "@ckeditor/ckeditor5-dev-utils": "^39.6.2",
     "@ckeditor/ckeditor5-theme-lark": "^41.1.0",
+    "copy-webpack-plugin": "^11.0.0",
     "css-loader": "6",
     "mini-css-extract-plugin": "^2.8.1",
     "postcss-loader": "8",
