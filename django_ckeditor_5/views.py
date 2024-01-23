@@ -72,7 +72,11 @@ def handle_uploaded_file(user, f):
 
 
 def upload_file(request):
-    if request.method == "POST" and request.user.is_staff:
+    # Allow admins and initiators to upload files
+    # FIXME: implement a proper permission method which can be provided via the settings
+    if (
+            request.method == "POST" and
+            (request.user.is_staff or request.user.organisation_set.exists())):
         form = UploadFileForm(request.POST, request.FILES)
         allow_all_file_types = getattr(settings, "CKEDITOR_5_ALLOW_ALL_FILE_TYPES", False)
 
