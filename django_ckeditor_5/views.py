@@ -72,7 +72,10 @@ def handle_uploaded_file(user, f):
 
 
 def upload_file(request):
-    if request.method == "POST" and request.user.is_staff:
+    if request.method == "POST":
+        if not getattr(settings, "CKEDITOR_5_UNRESTRICTED_UPLOADS", False):
+            if not request.user.is_staff:
+                raise Http404(_("Page not found."))
         form = UploadFileForm(request.POST, request.FILES)
         allow_all_file_types = getattr(settings, "CKEDITOR_5_ALLOW_ALL_FILE_TYPES", False)
 
