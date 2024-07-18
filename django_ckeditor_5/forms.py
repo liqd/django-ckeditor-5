@@ -4,7 +4,14 @@ from django.conf import settings
 
 
 class UploadFileForm(forms.Form):
-    upload = forms.FileField(validators=[
-        FileExtensionValidator(getattr(settings, "CKEDITOR_5_UPLOAD_FILE_TYPES", ["jpeg", "png", "gif", "bmp", "webp", "tiff"]))
-        ]
+    upload = forms.FileField(
+        validators=[
+            FileExtensionValidator(
+                getattr(
+                    settings,
+                    "CKEDITOR_5_UPLOAD_FILE_TYPES",
+                    ["jpg", "jpeg", "png", "gif", "bmp", "webp", "tiff"],
+                ),
+            ),
+        ],
     )
