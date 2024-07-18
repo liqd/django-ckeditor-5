@@ -76,4 +76,9 @@ def custom_upload_file(request):
         if form.is_valid():
             url = handle_uploaded_file(request.FILES["upload"])
             return JsonResponse({"url": url})
+        if form.errors["upload"]:
+            return JsonResponse(
+                {"error": {"message": form.errors["upload"][0]}},
+                status=400,
+            )
     raise Http404(_("Page not found."))
