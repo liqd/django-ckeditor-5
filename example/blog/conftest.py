@@ -13,6 +13,23 @@ def file():
 
 
 @pytest.fixture()
+def file_big():
+    file_path = os.path.join(
+        os.path.dirname(__file__),
+        "fixtures",
+        "files",
+        "test_big.png",
+    )
+    return open(file_path, "rb")
+
+
+@pytest.fixture()
+def file_dat():
+    file_path = os.path.join(os.path.dirname(__file__), "fixtures", "files", "test.dat")
+    return open(file_path, "rb")
+
+
+@pytest.fixture()
 def ckeditor5_field():
     return CKEditor5Field()
 
