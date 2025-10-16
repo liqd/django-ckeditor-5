@@ -45,30 +45,3 @@ form .aligned .ck ul {
 .ck-editor-container{
     width: 100%;
 }
-
-/* Custom Image Aspect Ratio Styles */
-
-/* 4:3 Aspect Ratio Container */
-.ck-content .image-aspect-ratio-43 {
-    max-width: 50%;
-    float: right;
-    
-    img {
-        aspect-ratio: 4/3 !important;
-        width: 100% !important;
-        height: 100% !important;
-        object-fit: cover;
-        object-position: center;
-    }
-}
-
-/* 2:1 Aspect Ratio Container */
-.ck-content .image-aspect-ratio-21 {
-    img {
-      aspect-ratio: 2/1 !important;
-      width: 100% !important;
-      height: 100% !important;
-      object-fit: cover;
-      object-position: center;
-    }
-}
