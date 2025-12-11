@@ -1,11 +1,25 @@
 import { Plugin } from '@ckeditor/ckeditor5-core/';
 import { ButtonView } from '@ckeditor/ckeditor5-ui/';
+import { add } from '@ckeditor/ckeditor5-utils/src/translation-service';
+import icon43 from './icons/aspectRatio43.js';
+import icon21 from './icons/aspectRatio21.js';
 
 export default class ImageAspectRatioPlugin extends Plugin {
   static get pluginName() { return 'ImageAspectRatio'; }
 
   init() {
     const editor = this.editor;
+    const { t } = editor.locale;
+
+    // Add translations
+    add('en', {
+      'Aspect ratio 4:3': 'Aspect ratio 4:3',
+      'Aspect ratio 2:1': 'Aspect ratio 2:1',
+    }, n => n !== 1);
+    add('de', {
+      'Aspect ratio 4:3': '4:3 Seitenverhältnis',
+      'Aspect ratio 2:1': '2:1 Seitenverhältnis',
+    }, n => n !== 1);
 
     editor.model.schema.extend('imageBlock', { allowAttributes: ['aspectRatio'] });
     editor.model.schema.extend('imageInline', { allowAttributes: ['aspectRatio'] });
@@ -38,29 +52,42 @@ export default class ImageAspectRatioPlugin extends Plugin {
       model: (el, { writer }) => writer.createElement('imageBlock', { aspectRatio: '21' })
     });
 
-    editor.ui.componentFactory.add('imageAspectRatio43', locale => {
-      const view = new ButtonView(locale);
-      view.set({
-        label: '4:3',
-        tooltip: '4:3 Seitenverhältnis',
-        withText: false,
-        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" role="img" aria-label="4:3"><rect x="3" y="5" width="14" height="10" rx="1.5" ry="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><text x="10" y="10" fill="currentColor" font-size="7" text-anchor="middle" dominant-baseline="middle" font-family="Inter, Arial, sans-serif">4:3</text></svg>'
+    // Helper function to create aspect ratio buttons
+    const createAspectRatioButton = (name, label, tooltipKey, icon, ratio, isActiveCheck) => {
+      editor.ui.componentFactory.add(name, locale => {
+        const view = new ButtonView(locale);
+        view.set({ 
+          label, 
+          tooltip: t(tooltipKey), 
+          withText: false, 
+          icon 
+        });
+        view.on('execute', () => this.apply(ratio));
+        
+        const updateButtonState = () => {
+          const selection = editor.model.document.selection;
+          const selectedElement = selection.getSelectedElement();
+          
+          if (selectedElement && (selectedElement.name === 'imageBlock' || selectedElement.name === 'imageInline')) {
+            const aspectRatio = selectedElement.getAttribute('aspectRatio');
+            view.set('isOn', isActiveCheck(aspectRatio));
+            view.set('isEnabled', true);
+          } else {
+            view.set('isOn', false);
+            view.set('isEnabled', false);
+          }
+        };
+        
+        editor.model.document.selection.on('change', updateButtonState);
+        editor.model.document.on('change:data', updateButtonState);
+        updateButtonState();
+        
+        return view;
       });
-      view.on('execute', () => this.apply('43'));
-      return view;
-    });
+    };
 
-    editor.ui.componentFactory.add('imageAspectRatio21', locale => {
-      const view = new ButtonView(locale);
-      view.set({
-        label: '2:1',
-        tooltip: '2:1 Seitenverhältnis',
-        withText: false,
-        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" role="img" aria-label="2:1"><rect x="2.5" y="6.5" width="15" height="7" rx="1.5" ry="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><text x="10" y="10" fill="currentColor" font-size="7" text-anchor="middle" dominant-baseline="middle" font-family="Inter, Arial, sans-serif">2:1</text></svg>'
-      });
-      view.on('execute', () => this.apply('21'));
-      return view;
-    });
+    createAspectRatioButton('imageAspectRatio43', '4:3', 'Aspect ratio 4:3', icon43, '43', (ar) => ar === '43');
+    createAspectRatioButton('imageAspectRatio21', '2:1', 'Aspect ratio 2:1', icon21, '21', (ar) => ar !== '43');
   }
 
   apply(ratio) {
