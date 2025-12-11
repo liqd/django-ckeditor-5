@@ -54,6 +54,7 @@ import { SelectAll } from '@ckeditor/ckeditor5-select-all';
 import { FindAndReplace } from '@ckeditor/ckeditor5-find-and-replace';
 import { Accordion } from '@liqd/ckeditor5-accordion';
 import ImageAspectRatioPlugin from './plugins/imageAspectRatio.js';
+import ImageUploadWithAspectRatioPlugin from './plugins/imageUploadWithAspectRatio.js';
 
 
 export default class ClassicEditor extends ClassicEditorBase {
@@ -113,5 +114,6 @@ ClassicEditor.builtinPlugins = [
     SelectAll,
     FindAndReplace,
     Accordion,
-    ImageAspectRatioPlugin
+    ImageAspectRatioPlugin,
+    ImageUploadWithAspectRatioPlugin
 ];
