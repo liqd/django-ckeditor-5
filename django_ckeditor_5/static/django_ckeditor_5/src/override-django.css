@@ -45,3 +45,12 @@ form .aligned .ck ul {
 .ck-editor-container{
     width: 100%;
 }
+
+.ck.ck-dropdown__panel, .ck.ck-balloon-panel {
+    border: none !important;
+}
+
+.ck.ck-balloon-panel .ck.ck-toolbar, .ck.ck-dropdown__panel .ck.ck-toolbar {
+    border: none !important;
+    box-shadow: 0 0 16px 0 rgba(0, 0, 0, 0.09), 0 2px 4px 0 rgba(0, 0, 0, 0.15);
+}
