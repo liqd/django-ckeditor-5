@@ -6,3 +6,6 @@ include package.json
 include package-lock.json
 include webpack.config.js
 include .gitignore
+prune dist
+global-exclude *.pyc
+global-exclude __pycache__

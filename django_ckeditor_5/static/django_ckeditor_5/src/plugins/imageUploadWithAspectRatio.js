@@ -13,7 +13,7 @@ export default class ImageUploadWithAspectRatioPlugin extends Plugin {
 
   init() {
     const editor = this.editor;
-    const { t } = editor.locale;
+    const { t} = editor.locale;
 
     // Add translations
     add('en', {
@@ -101,7 +101,7 @@ export default class ImageUploadWithAspectRatioPlugin extends Plugin {
           writer.setAttribute('aspectRatio', aspectRatio, lastImage);
         });
         
-        // Apply CSS class after a short delay
+        // Apply CSS class after a short delay to ensure view is rendered
         setTimeout(() => {
           this.applyCssClass(editor, lastImage, aspectRatio);
         }, 300);
@@ -116,37 +116,52 @@ export default class ImageUploadWithAspectRatioPlugin extends Plugin {
 
   applyCssClass(editor, imageElement, aspectRatio) {
     const viewElement = editor.editing.mapper.toViewElement(imageElement);
+    
     if (!viewElement) return;
     
-    // Find figure element in view
-    let figureElement = viewElement.parent;
-    if (!figureElement || !figureElement.is('element', 'figure')) {
-      let current = viewElement;
-      while (current && current.parent) {
-        current = current.parent;
-        if (current.is('element', 'figure')) {
-          figureElement = current;
-          break;
+    // Find img element in view structure
+    let imgElement = null;
+    if (viewElement.is('element', 'img')) {
+      imgElement = viewElement;
+    } else {
+      // Search for img in children recursively
+      const findImgRecursive = (element) => {
+        if (!element || !element.getChildren) return null;
+        for (const child of element.getChildren()) {
+          if (child.is && child.is('element', 'img')) {
+            return child;
+          }
+          if (child.is && child.is('element')) {
+            const found = findImgRecursive(child);
+            if (found) return found;
+          }
         }
-      }
+        return null;
+      };
+      imgElement = findImgRecursive(viewElement);
     }
+    
+    if (!imgElement) return;
     
     const expectedClass = `image-aspect-ratio-${aspectRatio}`;
     
-    // Try to apply via view writer
-    if (figureElement && figureElement.is('element', 'figure')) {
+    // Apply CSS class via view writer
+    if (imgElement && imgElement.is('element', 'img')) {
       editor.editing.view.change(writer => {
-        writer.removeClass(['image-aspect-ratio-43', 'image-aspect-ratio-21'], figureElement);
-        writer.addClass(expectedClass, figureElement);
+        writer.removeClass(['image-aspect-ratio-43', 'image-aspect-ratio-21'], imgElement);
+        writer.addClass(expectedClass, imgElement);
       });
     } else {
       // Fallback: Apply directly to DOM
       const domElement = editor.editing.view.domConverter.mapViewToDom(viewElement);
       if (domElement) {
-        const figureDom = domElement.closest('figure');
-        if (figureDom) {
-          figureDom.classList.remove('image-aspect-ratio-43', 'image-aspect-ratio-21');
-          figureDom.classList.add(expectedClass);
+        let imgDom = domElement;
+        if (domElement.tagName !== 'IMG') {
+          imgDom = domElement.querySelector('img');
+        }
+        if (imgDom) {
+          imgDom.classList.remove('image-aspect-ratio-43', 'image-aspect-ratio-21');
+          imgDom.classList.add(expectedClass);
         }
       }
     }
@@ -158,6 +173,7 @@ export default class ImageUploadWithAspectRatioPlugin extends Plugin {
     const range = model.createRangeIn(root);
     const items = Array.from(range.getItems());
     
+    // Search backwards for the last inserted image
     for (let i = items.length - 1; i >= 0; i--) {
       const item = items[i];
       let imageElement = null;
