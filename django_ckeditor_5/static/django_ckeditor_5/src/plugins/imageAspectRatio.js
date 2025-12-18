@@ -21,35 +21,130 @@ export default class ImageAspectRatioPlugin extends Plugin {
       'Aspect ratio 2:1': '2:1 Seitenverhältnis',
     }, n => n !== 1);
 
+    // Extend schema to allow aspectRatio attribute on images
     editor.model.schema.extend('imageBlock', { allowAttributes: ['aspectRatio'] });
     editor.model.schema.extend('imageInline', { allowAttributes: ['aspectRatio'] });
 
+    // Helper function to find the img element within view structure (figure or span)
+    const findImgElement = (element) => {
+      if (!element) return null;
+      
+      // Direct match: already an img
+      if (element.is('element', 'img')) {
+        return element;
+      }
+      
+      // Search in children
+      const children = Array.from(element.getChildren ? element.getChildren() : []);
+      for (const child of children) {
+        if (child.is && child.is('element', 'img')) {
+          return child;
+        }
+        // Recursive search for nested structures
+        if (child.is && child.is('element')) {
+          const found = findImgElement(child);
+          if (found) return found;
+        }
+      }
+      
+      return null;
+    };
+
+    // Downcast: Apply CSS classes to img element when aspectRatio attribute changes
     editor.conversion.for('downcast').add(dispatcher => {
-      dispatcher.on('attribute:aspectRatio:imageBlock', (evt, data, api) => {
+      const handleAspectRatioChange = (evt, data, api) => {
+        // IMPORTANT: Remove old aspect ratio classes from htmlImgAttributes in the model!
+        // This prevents the htmlSupport plugin from writing old classes to the output
+        const htmlAttrs = data.item.getAttribute('htmlImgAttributes');
+        if (htmlAttrs && htmlAttrs.classes) {
+          const newClasses = htmlAttrs.classes.filter(cls => 
+            cls !== 'image-aspect-ratio-43' && cls !== 'image-aspect-ratio-21'
+          );
+          
+          editor.model.change(writer => {
+            writer.setAttribute('htmlImgAttributes', {
+              ...htmlAttrs,
+              classes: newClasses
+            }, data.item);
+          });
+        }
+        
         const writer = api.writer;
-        const figure = api.mapper.toViewElement(data.item);
-        if (!figure) return;
-        writer.removeClass(['image-aspect-ratio-43','image-aspect-ratio-21'], figure);
-        if (data.attributeNewValue === '43') writer.addClass('image-aspect-ratio-43', figure);
-        if (data.attributeNewValue === '21') writer.addClass('image-aspect-ratio-21', figure);
-      });
-      dispatcher.on('attribute:aspectRatio:imageInline', (evt, data, api) => {
-        const writer = api.writer;
-        const figure = api.mapper.toViewElement(data.item);
-        if (!figure) return;
-        writer.removeClass(['image-aspect-ratio-43','image-aspect-ratio-21'], figure);
-        if (data.attributeNewValue === '43') writer.addClass('image-aspect-ratio-43', figure);
-        if (data.attributeNewValue === '21') writer.addClass('image-aspect-ratio-21', figure);
-      });
+        const viewElement = api.mapper.toViewElement(data.item);
+        const imgElement = findImgElement(viewElement);
+        
+        if (!imgElement) return;
+        
+        // Remove old aspect ratio classes
+        writer.removeClass('image-aspect-ratio-43', imgElement);
+        writer.removeClass('image-aspect-ratio-21', imgElement);
+        
+        // Add new class if aspectRatio is set
+        if (data.attributeNewValue) {
+          const newClass = `image-aspect-ratio-${data.attributeNewValue}`;
+          writer.addClass(newClass, imgElement);
+        }
+      };
+      dispatcher.on('attribute:aspectRatio:imageBlock', handleAspectRatioChange, { priority: 'lowest' });
+      dispatcher.on('attribute:aspectRatio:imageInline', handleAspectRatioChange, { priority: 'lowest' });
     });
 
-    editor.conversion.for('upcast').elementToElement({
-      view: { name: 'figure', classes: ['image','image-aspect-ratio-43'] },
-      model: (el, { writer }) => writer.createElement('imageBlock', { aspectRatio: '43' })
+    // Data Downcast: Same as above, but for saving (data view)
+    editor.conversion.for('dataDowncast').add(dispatcher => {
+      const handleDataAspectRatioChange = (evt, data, api) => {
+        const writer = api.writer;
+        const viewElement = api.mapper.toViewElement(data.item);
+        const imgElement = findImgElement(viewElement);
+        
+        if (!imgElement) return;
+        
+        // Remove old aspect ratio classes
+        writer.removeClass('image-aspect-ratio-43', imgElement);
+        writer.removeClass('image-aspect-ratio-21', imgElement);
+        
+        // Add new class if aspectRatio is set
+        if (data.attributeNewValue) {
+          const newClass = `image-aspect-ratio-${data.attributeNewValue}`;
+          writer.addClass(newClass, imgElement);
+        }
+      };
+      dispatcher.on('attribute:aspectRatio:imageBlock', handleDataAspectRatioChange, { priority: 'lowest' });
+      dispatcher.on('attribute:aspectRatio:imageInline', handleDataAspectRatioChange, { priority: 'lowest' });
     });
-    editor.conversion.for('upcast').elementToElement({
-      view: { name: 'figure', classes: ['image','image-aspect-ratio-21'] },
-      model: (el, { writer }) => writer.createElement('imageBlock', { aspectRatio: '21' })
+
+    // Upcast: Read CSS classes from img element and set aspectRatio attribute
+    editor.conversion.for('upcast').add(dispatcher => {
+      dispatcher.on('element:img', (evt, data, conversionApi) => {
+        if (!data.modelRange) return;
+        
+        const viewItem = data.viewItem;
+        let modelItem = null;
+        
+        // Find imageBlock/imageInline in modelRange
+        for (const item of data.modelRange.getItems()) {
+          if (item.name === 'imageBlock' || item.name === 'imageInline') {
+            modelItem = item;
+            break;
+          }
+        }
+        
+        // Fallback: check parent
+        if (!modelItem) {
+          const parent = data.modelRange.start.parent;
+          if (parent && (parent.name === 'imageBlock' || parent.name === 'imageInline')) {
+            modelItem = parent;
+          }
+        }
+        
+        if (!modelItem) return;
+        
+        // Read aspectRatio from CSS class
+        if (viewItem.hasClass('image-aspect-ratio-43')) {
+          conversionApi.writer.setAttribute('aspectRatio', '43', modelItem);
+        } else if (viewItem.hasClass('image-aspect-ratio-21')) {
+          conversionApi.writer.setAttribute('aspectRatio', '21', modelItem);
+        }
+      }, { priority: 'low' });
     });
 
     // Helper function to create aspect ratio buttons
@@ -94,12 +189,12 @@ export default class ImageAspectRatioPlugin extends Plugin {
     const editor = this.editor;
     const model = editor.model;
     const sel = model.document.selection;
-    model.change(writer => {
-      for (const block of sel.getSelectedBlocks()) {
-        if (block.name === 'imageBlock' || block.name === 'imageInline') {
-          writer.setAttribute('aspectRatio', ratio, block);
-        }
-      }
-    });
+    const selectedElement = sel.getSelectedElement();
+    
+    if (selectedElement && (selectedElement.name === 'imageBlock' || selectedElement.name === 'imageInline')) {
+      model.change(writer => {
+        writer.setAttribute('aspectRatio', ratio, selectedElement);
+      });
+    }
   }
 }
