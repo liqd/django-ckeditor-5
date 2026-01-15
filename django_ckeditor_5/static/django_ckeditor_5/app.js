@@ -1,6 +1,9 @@
 import ClassicEditor from './src/ckeditor';
 import './src/override-django.css';
 
+// Debug version
+console.log('[CKEditor Debug] app.js version 1.7 loaded');
+
 window.ClassicEditor = ClassicEditor;
 window.ckeditorRegisterCallback = registerCallback;
 window.ckeditorUnregisterCallback = unregisterCallback;
