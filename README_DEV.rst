@@ -29,9 +29,20 @@ Local Development
    
       dist/django_ckeditor_5-0.2.14-py3-none-any.whl
 
+5. **Local development with npm link (for a4-meinberlin):**
+   ::
+   
+      # In django-ckeditor-5/django_ckeditor_5:
+      sudo npm link
+      
+      # In a4-meinberlin:
+      npm link django_ckeditor_5
+      
+      # After making changes to JavaScript/CSS, rebuild:
+      cd django-ckeditor-5/django_ckeditor_5
+      npm run dev
+
 Notes
 -----
 
-- Always run ``npm run prod`` after making changes to plugins or CSS
 - Commit the whl file only for for development purposes if really needed. 
-- Use ``-e`` flag for local development to avoid rebuilding
