@@ -4,7 +4,6 @@ import { add } from '@ckeditor/ckeditor5-utils/src/translation-service';
 import icon43 from './icons/aspectRatio43.js';
 import icon21 from './icons/aspectRatio21.js';
 
-
 export default class ImageUploadWithAspectRatioPlugin extends Plugin {
   static get pluginName() { return 'ImageUploadWithAspectRatio'; }
 
@@ -14,7 +13,7 @@ export default class ImageUploadWithAspectRatioPlugin extends Plugin {
 
   init() {
     const editor = this.editor;
-    const { t} = editor.locale;
+    const { t } = editor.locale;
 
     // Add translations
     add('en', {
@@ -26,94 +25,84 @@ export default class ImageUploadWithAspectRatioPlugin extends Plugin {
       'Aspect ratio 2:1 - Wide format (full width)': '2:1 Seitenverhältnis - Breites Format (volle Breite)',
     }, n => n !== 1);
 
-    // Create button for 4:3 upload
-    editor.ui.componentFactory.add('imageUpload43', (locale) => {
-      const view = new ButtonView(locale);
-      view.set({
-        tooltip: t('Aspect ratio 4:3 - Compact format (right-aligned)'),
-        icon: icon43
+    // Helper function to create upload buttons
+    const createUploadButton = (name, aspectRatio, tooltipKey, icon) => {
+      editor.ui.componentFactory.add(name, (locale) => {
+        const view = new ButtonView(locale);
+        view.set({
+          tooltip: t(tooltipKey),
+          icon: icon
+        });
+        
+        view.on('execute', () => {
+          this.triggerImageUpload(aspectRatio);
+        });
+        
+        return view;
       });
-      
-      view.on('execute', () => {
-        this.triggerImageUpload(editor, '43');
-      });
-      
-      return view;
-    });
+    };
 
-    // Create button for 2:1 upload
-    editor.ui.componentFactory.add('imageUpload21', (locale) => {
-      const view = new ButtonView(locale);
-      view.set({
-        tooltip: t('Aspect ratio 2:1 - Wide format (full width)'),
-        icon: icon21
-      });
-      
-      view.on('execute', () => {
-        this.triggerImageUpload(editor, '21');
-      });
-      
-      return view;
-    });
+    createUploadButton('imageUpload43', '43', 'Aspect ratio 4:3 - Compact format (right-aligned)', icon43);
+    createUploadButton('imageUpload21', '21', 'Aspect ratio 2:1 - Wide format (full width)', icon21);
   }
 
-  triggerImageUpload(editor, aspectRatio) {
+  triggerImageUpload(aspectRatio) {
+    const editor = this.editor;
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/*';
     fileInput.multiple = false;
     fileInput.style.display = 'none';
     
-    // Store the selection position before upload
-    const selectionBeforeUpload = editor.model.document.selection.getFirstPosition();
-    
-    fileInput.addEventListener('change', (event) => {
+    fileInput.addEventListener('change', async (event) => {
       const files = Array.from(event.target.files);
       if (files.length > 0) {
         const imageUploadCommand = editor.commands.get('imageUpload');
         if (imageUploadCommand && imageUploadCommand.isEnabled) {
-          imageUploadCommand.execute({ file: files[0] });
-          this.applyAspectRatioAfterUpload(editor, aspectRatio, selectionBeforeUpload);
+          const executeResult = imageUploadCommand.execute({ file: files[0] });
+          
+          // If execute returns a promise, wait for it
+          if (executeResult && typeof executeResult.then === 'function') {
+            await executeResult;
+          }
+          
+          // Apply aspect ratio after upload
+          await this.applyAspectRatioAfterUpload(aspectRatio);
         }
       }
       
-      if (fileInput.parentNode) {
-        fileInput.parentNode.removeChild(fileInput);
-      }
+      fileInput.remove();
     });
     
     document.body.appendChild(fileInput);
     fileInput.click();
   }
 
-  applyAspectRatioAfterUpload(editor, aspectRatio, selectionBeforeUpload) {
-    let retryCount = 0;
-    const maxRetries = 20;
+  async applyAspectRatioAfterUpload(aspectRatio) {
+    const editor = this.editor;
+    // Try to find the image immediately
+    let insertedImage = this.findInsertedImage();
     
-    const checkAndApply = () => {
-      // Find the image that was inserted at or after the selection position
-      const insertedImage = this.findInsertedImageAtPosition(editor, selectionBeforeUpload);
-      if (insertedImage) {
-        // Set aspect ratio attribute in model
-        // The downcast handler in imageAspectRatio.js will automatically apply the CSS class
-        editor.model.change(writer => {
-          writer.setAttribute('aspectRatio', aspectRatio, insertedImage);
-        });
-      } else if (retryCount < maxRetries) {
-        retryCount++;
-        setTimeout(checkAndApply, 50);
-      }
-    };
+    // If not found, wait a bit and retry (fallback for async upload)
+    if (!insertedImage) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      insertedImage = this.findInsertedImage();
+    }
     
-    setTimeout(checkAndApply, 100);
+    if (insertedImage) {
+      // Set aspect ratio attribute only in the model downcast will do the rest
+      editor.model.change(writer => {
+        writer.setAttribute('aspectRatio', aspectRatio, insertedImage);
+      });
+    }
   }
 
-  findInsertedImageAtPosition(editor, positionBeforeUpload) {
+  findInsertedImage() {
+    const editor = this.editor;
     const model = editor.model;
     const root = model.document.getRoot();
     
-    // Collect all images in the document
-    const allImages = [];
+    // Find the first image without aspectRatio attribute (newly inserted)
     const allItems = Array.from(model.createRangeIn(root).getItems());
     for (const item of allItems) {
       let imageElement = null;
@@ -122,47 +111,12 @@ export default class ImageUploadWithAspectRatioPlugin extends Plugin {
       } else if (item.parent && (item.parent.name === 'imageBlock' || item.parent.name === 'imageInline')) {
         imageElement = item.parent;
       }
-      if (imageElement && !allImages.includes(imageElement)) {
-        allImages.push(imageElement);
+      
+      if (imageElement && !imageElement.getAttribute('aspectRatio')) {
+        return imageElement;
       }
     }
     
-    // Find all images WITHOUT aspectRatio attribute (newly inserted)
-    const imagesWithoutAspectRatio = [];
-    for (const img of allImages) {
-      if (!img.getAttribute('aspectRatio')) {
-        imagesWithoutAspectRatio.push(img);
-      }
-    }
-    
-    // If there's only one image without aspectRatio, use it
-    if (imagesWithoutAspectRatio.length === 1) {
-      return imagesWithoutAspectRatio[0];
-    }
-    
-    // If multiple images without aspectRatio, find the one at or after the stored position
-    if (imagesWithoutAspectRatio.length > 0 && positionBeforeUpload) {
-      for (const img of imagesWithoutAspectRatio) {
-        try {
-          const imgPos = model.createPositionBefore(img);
-          if (imgPos.isAfter(positionBeforeUpload) || imgPos.isEqual(positionBeforeUpload)) {
-            return img;
-          }
-        } catch (e) {
-          // If position comparison fails, continue
-        }
-      }
-      // Fallback: use the first one
-      return imagesWithoutAspectRatio[0];
-    }
-    
-    // Fallback: if no position or all images have aspectRatio, use selected element or last image
-    const currentSelection = model.document.selection;
-    const selectedElement = currentSelection.getSelectedElement();
-    if (selectedElement && (selectedElement.name === 'imageBlock' || selectedElement.name === 'imageInline')) {
-      return selectedElement;
-    }
-    
-    return allImages[allImages.length - 1] || null;
+    return null;
   }
 }
