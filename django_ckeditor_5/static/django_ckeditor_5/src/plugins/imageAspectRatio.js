@@ -53,8 +53,6 @@ export default class ImageAspectRatioPlugin extends Plugin {
     // Downcast: Apply CSS classes to img element when aspectRatio attribute changes
     editor.conversion.for('downcast').add(dispatcher => {
       const handleAspectRatioChange = (evt, data, api) => {
-        // IMPORTANT: Remove old aspect ratio classes from htmlImgAttributes in the model!
-        // This prevents the htmlSupport plugin from writing old classes to the output
         const htmlAttrs = data.item.getAttribute('htmlImgAttributes');
         if (htmlAttrs && htmlAttrs.classes) {
           const newClasses = htmlAttrs.classes.filter(cls => 
@@ -73,7 +71,9 @@ export default class ImageAspectRatioPlugin extends Plugin {
         const viewElement = api.mapper.toViewElement(data.item);
         const imgElement = findImgElement(viewElement);
         
-        if (!imgElement) return;
+        if (!imgElement) {
+          return;
+        }
         
         // Remove old aspect ratio classes
         writer.removeClass('image-aspect-ratio-43', imgElement);
